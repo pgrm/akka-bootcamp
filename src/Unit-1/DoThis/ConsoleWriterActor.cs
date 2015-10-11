@@ -15,17 +15,17 @@ namespace WinTail
             {
                 var msg = message as Messages.InputError;
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine(msg.Reason);
+                Console.Error.WriteLine(msg.Reason);
             }
             else if (message is Messages.InputSuccess)
             {
                 var msg = message as Messages.InputSuccess;
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine(msg.Reason);
+                Console.Error.WriteLine(msg.Reason);
             }
             else
             {
-                Console.WriteLine(message);
+                Console.Write(message);
             }
 
             Console.ResetColor();
