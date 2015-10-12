@@ -17,7 +17,7 @@ namespace WinTail
             }
         }
 
-        protected override Akka.Actor.SupervisorStrategy SupervisorStrategy()
+        protected override SupervisorStrategy SupervisorStrategy()
         {
             return new OneForOneStrategy(
                 10, // maxNumberOfRetries

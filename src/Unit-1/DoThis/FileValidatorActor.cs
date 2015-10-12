@@ -9,13 +9,12 @@ namespace WinTail
     /// </summary>
     public class FileValidatorActor : UntypedActor
     {
+        private const string TailCoordinatorActorPath = "akka://MyActorSystem/user/tailCoordinatorActor";
         private readonly IActorRef _consoleWriterActor;
-        private readonly IActorRef _tailCoordinatorActor;
 
-        public FileValidatorActor(IActorRef consoleWriterActor, IActorRef tailCoordinatorActor)
+        public FileValidatorActor(IActorRef consoleWriterActor)
         {
             _consoleWriterActor = consoleWriterActor;
-            _tailCoordinatorActor = tailCoordinatorActor;
         }
 
         protected override void OnReceive(object message)
@@ -34,12 +33,12 @@ namespace WinTail
                 {
                     // send success to console writer
                     _consoleWriterActor.Tell(new Messages.InputSuccess($"Starting processing for {msg}"));
-                    _tailCoordinatorActor.Tell(new TailCoordinatorActor.StartTail(msg, _consoleWriterActor));
+                    Context.ActorSelection(TailCoordinatorActorPath).Tell(new TailCoordinatorActor.StartTail(msg, _consoleWriterActor));
                 }
                 else
                 {
                     // signal that input was bad
-                    _consoleWriterActor.Tell(new Messages.ValidationError("Invalid: input had odd number of characters."));
+                    _consoleWriterActor.Tell(new Messages.ValidationError($"Invalid: input '{msg}' is not a file."));
                     Sender.Tell(new Messages.ContinueProcessing());
                 }
             }
