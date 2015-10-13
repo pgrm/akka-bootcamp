@@ -10,25 +10,28 @@ namespace WinTail
         private const int MaxCharsToRead = 1024 * 1024; // 1MB
         private readonly string _filePath;
         private readonly IActorRef _reporterActor;
-        private readonly FileObserver _observer;
-        private readonly Stream _fileStream;
-        private readonly StreamReader _fileStreamReader;
+        private FileObserver _observer;
+        private StreamReader _fileStreamReader;
 
         public TailActor(IActorRef reporterActor, string filePath)
         {
             _reporterActor = reporterActor;
             _filePath = filePath;
+        }
 
+        protected override void PreStart()
+        {
             // start watching file for changes
             _observer = new FileObserver(Self, Path.GetFullPath(_filePath));
             _observer.Start();
 
             // open the file stream with shared read/write permissions (so file can be written to while open)
-            _fileStream = new FileStream(Path.GetFullPath(_filePath), FileMode.Open, FileAccess.ReadWrite);
-            _fileStreamReader = new StreamReader(_fileStream, Encoding.UTF8);
+            var fileStream = new FileStream(Path.GetFullPath(_filePath), FileMode.Open, FileAccess.ReadWrite);
+            _fileStreamReader = new StreamReader(fileStream, Encoding.UTF8);
 
-            // read the initial contents of the file and send it to console as first message
+            // the file probably has changed so start reading it
             Self.Tell(new FileWrite(_filePath));
+            base.PreStart();
         }
 
         protected override void OnReceive(object message)
@@ -49,11 +52,15 @@ namespace WinTail
                 var fe = message as FileError;
                 _reporterActor.Tell($"Tail error: {fe.Reason}");
             }
-            else if (message is InitialRead)
-            {
-                var ir = message as InitialRead;
-                _reporterActor.Tell(ir.Text);
-            }
+        }
+
+        protected override void PostStop()
+        {
+            _observer.Dispose();
+            _observer = null;
+            _fileStreamReader.Close();
+            _fileStreamReader = null;
+            base.PostStop();
         }
 
         private string ReadToEnd() 
